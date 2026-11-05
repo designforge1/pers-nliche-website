@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>Vertriebs Dialer</title>
+<style>
+  :root{--bg:#0b0d10;--card:#161a20;--txt:#f4f6f8;--mut:#8a95a3;--green:#16a34a;--red:#dc2626;--amber:#d97706;--blue:#2563eb}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--txt);font:17px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif}
+  body{padding:calc(env(safe-area-inset-top) + 12px) 14px calc(env(safe-area-inset-bottom) + 14px);min-height:100vh;display:flex;flex-direction:column;gap:12px}
+  .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .stats{display:flex;gap:8px;font-size:15px;color:var(--mut)}
+  .stats b{color:var(--txt);font-size:19px}
+  .tabbtn{background:var(--card);color:var(--txt);border:0;border-radius:12px;padding:10px 14px;font-size:15px}
+  .card{background:var(--card);border-radius:20px;padding:18px;text-align:center}
+  .name{font-size:30px;font-weight:700;margin:4px 0}
+  .info{color:var(--mut);font-size:17px;min-height:1.3em}
+  .num{font-size:24px;letter-spacing:.5px;margin-top:6px;user-select:all}
+  .pos{color:var(--mut);font-size:14px}
+  a.call{display:flex;align-items:center;justify-content:center;gap:14px;background:var(--green);color:#fff;text-decoration:none;
+    font-size:36px;font-weight:800;border-radius:24px;min-height:34vh;box-shadow:0 8px 30px rgba(22,163,74,.35)}
+  a.call:active{transform:scale(.98)}
+  .row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+  .row button{border:0;border-radius:18px;color:#fff;font-size:18px;font-weight:700;min-height:92px;padding:8px}
+  .ok{background:var(--blue)}.no{background:var(--red)}.nr{background:var(--amber)}
+  .skip{background:transparent;color:var(--mut);border:1px solid #2a313b;border-radius:14px;padding:12px;font-size:16px}
+  textarea{width:100%;min-height:42vh;background:var(--card);color:var(--txt);border:1px solid #2a313b;border-radius:14px;padding:12px;font:16px/1.4 ui-monospace,Menlo,monospace}
+  .btn{border:0;border-radius:14px;padding:16px;font-size:18px;font-weight:700;color:#fff;background:var(--green);width:100%}
+  .sec{background:#2a313b}
+  .hint{color:var(--mut);font-size:14px}
+  .list{display:flex;flex-direction:column;gap:6px}
+  .li{background:var(--card);border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between;gap:8px;font-size:15px}
+  .tag{font-size:13px;padding:2px 8px;border-radius:8px;white-space:nowrap}
+  .hidden{display:none!important}
+  .done{font-size:26px;font-weight:700;padding:40px 10px}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="stats">📞 <b id="sCalls">0</b> &nbsp;✅ <b id="sOk">0</b> &nbsp;🔁 <b id="sLeft">0</b></div>
+  <div><button class="tabbtn" id="toList">Liste</button> <button class="tabbtn" id="toImport">Import</button></div>
+</div>
+
+<!-- DIALER -->
+<section id="vDial" style="display:flex;flex-direction:column;gap:12px;flex:1">
+  <div class="card">
+    <div class="pos" id="pos"></div>
+    <div class="name" id="name">Keine Kontakte</div>
+    <div class="info" id="info">Tippe oben auf Import</div>
+    <div class="num" id="num"></div>
+  </div>
+  <a class="call" id="call" href="#" target="_top">📞 ANRUFEN</a>
+  <div class="row">
+    <button class="ok" data-r="ok">✅<br>Termin</button>
+    <button class="nr" data-r="nr">🔁<br>Nicht erreicht</button>
+    <button class="no" data-r="no">❌<br>Kein Interesse</button>
+  </div>
+  <button class="skip" id="skip">Überspringen ⏭</button>
+</section>
+
+<!-- IMPORT -->
+<section id="vImport" class="hidden" style="display:flex;flex-direction:column;gap:10px">
+  <div class="hint">Eine Zeile pro Kontakt, Format: <b>Name, Telefonnummer, Notiz</b> (Notiz optional). Du kannst auch direkt aus Excel oder Numbers kopieren, Tabs und Semikolons gehen auch.</div>
+  <textarea id="ta" placeholder="Bäckerei Müller, 0171 1234567, hat keine Website&#10;Friseur Schmidt; +49 30 9876543; alte Seite von 2012"></textarea>
+  <input type="file" id="file" accept=".csv,.txt,text/csv,text/plain" class="hint">
+  <button class="btn" id="doImport">Kontakte übernehmen</button>
+  <button class="btn sec" id="doAppend">Zur bestehenden Liste hinzufügen</button>
+  <button class="btn sec" id="back1">Zurück</button>
+</section>
+
+<!-- LIST -->
+<section id="vList" class="hidden" style="display:flex;flex-direction:column;gap:10px">
+  <button class="btn" id="copyRes">Ergebnisse kopieren (Termine & Notizen)</button>
+  <div class="hint" id="copyMsg"></div>
+  <div class="list" id="list"></div>
+  <button class="btn sec" id="reset">Alles zurücksetzen</button>
+  <button class="btn sec" id="back2">Zurück</button>
+</section>
+
+<script>
+const KEY='dialer_v1';
+let S={leads:[],queue:[],calls:0};
+try{const d=JSON.parse(localStorage.getItem(KEY)); if(d&&d.leads) S=d;}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const $=id=>document.getElementById(id);
+
+function telHref(n){
+  let t=n.replace(/[^\d+]/g,'');
+  if(t.startsWith('00')) t='+'+t.slice(2);
+  return 'tel:'+t;
+}
+function parse(text){
+  const out=[];
+  text.split(/\r?\n/).forEach(line=>{
+    line=line.trim(); if(!line) return;
+    const parts=line.split(/\t|;|,(?=\s*[^\d\s])|,(?=\s*[+\d(])/).map(s=>s.trim().replace(/^"|"$/g,''));
+    let phone='',name='',note=[];
+    parts.forEach(p=>{
+      if(!phone && /^[+\d(][\d\s()\/\-.+]{5,}$/.test(p)) phone=p;
+      else if(!name) name=p; else if(p) note.push(p);
+    });
+    if(!phone){const m=line.match(/(\+?\d[\d\s\/\-().]{5,}\d)/); if(m) phone=m[1].trim();}
+    if(phone && !/^name$/i.test(name)) out.push({name:name||phone,phone,note:note.join(' · '),res:null,tries:0});
+  });
+  return out;
+}
+function importLeads(append){
+  const L=parse($('ta').value);
+  if(!L.length){$('ta').placeholder='Keine Telefonnummern erkannt, bitte prüfen.';return;}
+  if(!append){S={leads:[],queue:[],calls:0};}
+  const base=S.leads.length;
+  S.leads.push(...L);
+  L.forEach((_,i)=>S.queue.push(base+i));
+  save(); $('ta').value=''; show('vDial');
+}
+function render(){
+  const left=S.queue.length;
+  $('sCalls').textContent=S.calls;
+  $('sOk').textContent=S.leads.filter(l=>l.res==='ok').length;
+  $('sLeft').textContent=left;
+  const c=$('call');
+  if(!left){
+    $('pos').textContent='';
+    $('name').textContent=S.leads.length?'🎉 Liste durch':'Keine Kontakte';
+    $('info').textContent=S.leads.length?'Starke Arbeit. Ergebnisse unter Liste.':'Tippe oben auf Import';
+    $('num').textContent=''; c.removeAttribute('href'); c.style.opacity=.3;
+    return;
+  }
+  const l=S.leads[S.queue[0]];
+  $('pos').textContent='Kontakt '+(S.leads.length-left+1)+' von '+S.leads.length+(l.tries?' · Versuch '+(l.tries+1):'');
+  $('name').textContent=l.name;
+  $('info').textContent=l.note||'';
+  $('num').textContent=l.phone;
+  c.href=telHref(l.phone); c.style.opacity=1;
+}
+$('call').addEventListener('click',()=>{if(S.queue.length){S.calls++;save();setTimeout(render,50);}});
+document.querySelectorAll('.row button').forEach(b=>b.addEventListener('click',()=>{
+  if(!S.queue.length) return;
+  const i=S.queue.shift(), l=S.leads[i], r=b.dataset.r;
+  l.tries++; l.res=r;
+  if(r==='nr' && l.tries<3) S.queue.push(i);   // nicht erreicht: hinten wieder einreihen, max 3 Versuche
+  save(); render();
+}));
+$('skip').onclick=()=>{if(S.queue.length>1){S.queue.push(S.queue.shift());save();render();}};
+
+function renderList(){
+  const lab={ok:['Termin','#2563eb'],no:['Kein Interesse','#dc2626'],nr:['Nicht erreicht','#d97706']};
+  $('list').innerHTML=S.leads.map(l=>{
+    const t=l.res?lab[l.res]:['Offen','#2a313b'];
+    return `<div class="li"><div><b>${esc(l.name)}</b><br><span class="hint">${esc(l.phone)}${l.note?' · '+esc(l.note):''}</span></div><span class="tag" style="background:${t[1]}">${t[0]}</span></div>`;
+  }).join('')||'<div class="hint">Noch keine Kontakte.</div>';
+}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+$('copyRes').onclick=async()=>{
+  const lab={ok:'TERMIN',no:'Kein Interesse',nr:'Nicht erreicht'};
+  const txt=S.leads.map(l=>[l.name,l.phone,l.res?lab[l.res]:'Offen',l.note].join('; ')).join('\n');
+  try{await navigator.clipboard.writeText(txt);$('copyMsg').textContent='Kopiert, jetzt in Notizen einfügen.';}
+  catch(e){$('ta').value=txt;$('copyMsg').textContent='Kopieren blockiert, Text steht im Import Feld zum Markieren.';}
+};
+let armed=false;
+$('reset').onclick=()=>{
+  if(!armed){armed=true;$('reset').textContent='Nochmal tippen zum Löschen';setTimeout(()=>{armed=false;$('reset').textContent='Alles zurücksetzen'},3000);return;}
+  S={leads:[],queue:[],calls:0};save();show('vDial');
+};
+$('file').onchange=e=>{const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{$('ta').value=r.result}; r.readAsText(f);};
+
+function show(v){
+  ['vDial','vImport','vList'].forEach(x=>$(x).classList.toggle('hidden',x!==v));
+  if(v==='vList') renderList();
+  render();
+}
+$('toImport').onclick=()=>show('vImport');
+$('toList').onclick=()=>show('vList');
+$('back1').onclick=$('back2').onclick=()=>show('vDial');
+$('doImport').onclick=()=>importLeads(false);
+$('doAppend').onclick=()=>importLeads(true);
+
+// Bildschirm wach halten, wenn unterstützt
+async function wake(){try{if('wakeLock' in navigator) await navigator.wakeLock.request('screen');}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){wake();render();}});
+wake(); render();
+</script>
+</body>
+</html>
