@@ -51,7 +51,7 @@
     <div class="pos" id="pos"></div>
     <div class="name" id="name">Keine Kontakte</div>
     <div class="info" id="info">Tippe oben auf Import</div>
-    <div class="num" id="num"></div>
+    <a class="num" id="num" style="color:#f4f6f8;display:block;text-decoration:underline"></a>
   </div>
   <a class="call" id="call" href="#" target="_top">📞 ANRUFEN</a>
   <div class="row">
@@ -137,10 +137,15 @@ function render(){
   $('pos').textContent='Kontakt '+(S.leads.length-left+1)+' von '+S.leads.length+(l.tries?' · Versuch '+(l.tries+1):'');
   $('name').textContent=l.name;
   $('info').textContent=l.note||'';
-  $('num').textContent=l.phone;
+  $('num').textContent=l.phone; $('num').href=telHref(l.phone);
   c.href=telHref(l.phone); c.style.opacity=1;
 }
-$('call').addEventListener('click',()=>{if(S.queue.length){S.calls++;save();setTimeout(render,50);}});
+$('call').addEventListener('click',e=>{
+  if(!S.queue.length) return;
+  const h=$('call').href;
+  if(window.top!==window){ e.preventDefault(); try{window.top.location.href=h;}catch(x){ try{window.open(h,'_blank');}catch(y){ location.href=h; } } }
+  S.calls++;save();setTimeout(render,50);
+});
 document.querySelectorAll('.row button').forEach(b=>b.addEventListener('click',()=>{
   if(!S.queue.length) return;
   const i=S.queue.shift(), l=S.leads[i], r=b.dataset.r;
