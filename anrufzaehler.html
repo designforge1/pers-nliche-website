@@ -65,9 +65,9 @@
 <script>
 const KEY = 'anrufzaehler';
 const names = { v: 'Anrufversuch', e: 'Erreicht', t: 'Termin gesetzt' };
-let s = JSON.parse(localStorage.getItem(KEY) || 'null') || { v: 0, e: 0, t: 0, log: [] };
+let s; try { s = JSON.parse(localStorage.getItem(KEY)); } catch (x) {} s = s || { v: 0, e: 0, t: 0, log: [] };
 
-function save() { localStorage.setItem(KEY, JSON.stringify(s)); }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (x) {} }
 function time() { return new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }); }
 
 function chg(k, d) {
@@ -83,7 +83,9 @@ function chg(k, d) {
 }
 
 function reset() {
-  if (!confirm('Alle Zähler auf 0 setzen?')) return;
+  const b = document.querySelector('.reset');
+  if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Nochmal tippen zum Bestätigen'; setTimeout(() => { delete b.dataset.sure; b.textContent = 'Neuer Tag / Zurücksetzen'; }, 3000); return; }
+  delete b.dataset.sure; b.textContent = 'Neuer Tag / Zurücksetzen';
   s = { v: 0, e: 0, t: 0, log: [] }; save(); render();
 }
 
