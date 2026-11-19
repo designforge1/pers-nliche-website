@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Anrufzähler">
+<meta name="theme-color" content="#0f172a">
+<title>Anrufzähler</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+         background: #0f172a; color: #f1f5f9; min-height: 100vh; user-select: none; }
+  .wrap { max-width: 480px; margin: 0 auto; padding: 24px 16px 40px; }
+  h1 { font-size: 22px; margin: 8px 0 4px; }
+  .date { color: #94a3b8; font-size: 14px; margin-bottom: 20px; }
+  .card { background: #1e293b; border-radius: 20px; padding: 18px; margin-bottom: 14px; }
+  .label { font-size: 15px; color: #cbd5e1; display: flex; justify-content: space-between; }
+  .row { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+  .count { font-size: 48px; font-weight: 700; flex: 1; }
+  button { border: 0; border-radius: 16px; font-size: 22px; font-weight: 700; color: #fff; cursor: pointer;
+           transition: transform .08s; }
+  button:active { transform: scale(.94); }
+  .minus { width: 56px; height: 56px; background: #334155; }
+  .plus { width: 96px; height: 72px; font-size: 28px; }
+  .c1 .plus { background: #3b82f6; } .c2 .plus { background: #22c55e; } .c3 .plus { background: #f59e0b; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat { background: #0f172a; border-radius: 14px; padding: 12px; text-align: center; }
+  .stat b { display: block; font-size: 24px; }
+  .stat span { font-size: 12px; color: #94a3b8; }
+  .log { font-size: 14px; color: #94a3b8; max-height: 160px; overflow-y: auto; }
+  .reset { width: 100%; height: 50px; font-size: 16px; background: #7f1d1d; margin-top: 6px; }
+  .flash { animation: f .3s; } @keyframes f { 50% { color: #60a5fa; transform: scale(1.1); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📞 Anrufzähler</h1>
+  <div class="date" id="date"></div>
+
+  <div class="card c1"><div class="label"><span>Anrufversuche</span><span id="last1"></span></div>
+    <div class="row"><div class="count" id="v">0</div>
+      <button class="minus" onclick="chg('v',-1)">−</button>
+      <button class="plus" onclick="chg('v',1)">+1</button></div></div>
+
+  <div class="card c2"><div class="label"><span>Erreicht</span></div>
+    <div class="row"><div class="count" id="e">0</div>
+      <button class="minus" onclick="chg('e',-1)">−</button>
+      <button class="plus" onclick="chg('e',1)">+1</button></div></div>
+
+  <div class="card c3"><div class="label"><span>Termine gesetzt</span></div>
+    <div class="row"><div class="count" id="t">0</div>
+      <button class="minus" onclick="chg('t',-1)">−</button>
+      <button class="plus" onclick="chg('t',1)">+1</button></div></div>
+
+  <div class="card stats">
+    <div class="stat"><b id="q1">0 %</b><span>Erreichquote</span></div>
+    <div class="stat"><b id="q2">0 %</b><span>Terminquote (von Erreichten)</span></div>
+  </div>
+
+  <div class="card"><div class="label"><span>Verlauf heute</span></div><div class="log" id="log"></div></div>
+
+  <button class="reset" onclick="reset()">Neuer Tag / Zurücksetzen</button>
+</div>
+<script>
+const KEY = 'anrufzaehler';
+const names = { v: 'Anrufversuch', e: 'Erreicht', t: 'Termin gesetzt' };
+let s = JSON.parse(localStorage.getItem(KEY) || 'null') || { v: 0, e: 0, t: 0, log: [] };
+
+function save() { localStorage.setItem(KEY, JSON.stringify(s)); }
+function time() { return new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }); }
+
+function chg(k, d) {
+  if (s[k] + d < 0) return;
+  s[k] += d;
+  // Erreicht und Termine zählen automatisch als Anrufversuch mit, falls nötig
+  if (d > 0 && k !== 'v' && s.e > s.v) s.v = s.e;
+  if (d > 0 && k === 't' && s.t > s.e) s.e = s.t;
+  if (d > 0) s.log.unshift(time() + '  ' + names[k] + ' ' + s[k]);
+  else s.log.unshift(time() + '  ' + names[k] + ' korrigiert auf ' + s[k]);
+  if (navigator.vibrate) navigator.vibrate(30);
+  save(); render(k);
+}
+
+function reset() {
+  if (!confirm('Alle Zähler auf 0 setzen?')) return;
+  s = { v: 0, e: 0, t: 0, log: [] }; save(); render();
+}
+
+function render(k) {
+  ['v', 'e', 't'].forEach(x => document.getElementById(x).textContent = s[x]);
+  document.getElementById('q1').textContent = (s.v ? Math.round(s.e / s.v * 100) : 0) + ' %';
+  document.getElementById('q2').textContent = (s.e ? Math.round(s.t / s.e * 100) : 0) + ' %';
+  document.getElementById('last1').textContent = s.v ? 'Versuch ' + s.v + ' gewählt' : '';
+  document.getElementById('log').innerHTML = s.log.slice(0, 50).map(l => '<div>' + l + '</div>').join('') || 'Noch keine Einträge';
+  if (k) { const el = document.getElementById(k); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+}
+
+document.getElementById('date').textContent = new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+render();
+</script>
+</body>
+</html>
